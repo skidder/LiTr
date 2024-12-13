@@ -1,13 +1,18 @@
 buildscript {
-    ext.kotlin_version = '1.7.20'
-
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.3.1'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.android.tools.build:gradle:8.6.1'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0"  // or whatever version your main project uses
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
     }
 }
 
@@ -22,8 +27,9 @@ allprojects {
 }
 
 ext {
-    minSdkVersion = 18
-    targetSdkVersion = 30
-    compileSdkVersion = 33
+    kotlin_version = '1.9.0'
+    minSdkVersion = 24
+    targetSdkVersion = 35
+    compileSdkVersion = 35
     buildToolsVersion = "33.0.1"
 }
