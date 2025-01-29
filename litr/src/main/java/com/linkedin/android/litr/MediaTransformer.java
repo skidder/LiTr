@@ -63,6 +63,9 @@ public class MediaTransformer {
     private static final String TAG = MediaTransformer.class.getSimpleName();
     private static final int DEFAULT_FUTURE_MAP_SIZE = 10;
 
+    private static final String KEY_VENDOR_SAR_WIDTH = "sar-width";
+    private static final String KEY_VENDOR_SAR_HEIGHT = "sar-height";
+
     private final Context context;
 
     private final ExecutorService executorService;
@@ -260,6 +263,31 @@ public class MediaTransformer {
                     && targetMediaFormat.containsKey(MediaFormat.KEY_MIME)
                     && targetMediaFormat.getString(MediaFormat.KEY_MIME).startsWith("video")) {
                 targetVideoMimeType = targetMediaFormat.getString(MediaFormat.KEY_MIME);
+
+                // Preserve SAR information if available in source format
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    Log.i(TAG, "Using API 33+ SAR keys");
+                    if (sourceMediaFormat.containsKey(MediaFormat.KEY_PIXEL_ASPECT_RATIO_WIDTH) &&
+                            sourceMediaFormat.containsKey(MediaFormat.KEY_PIXEL_ASPECT_RATIO_HEIGHT)) {
+                        targetMediaFormat.setInteger(MediaFormat.KEY_PIXEL_ASPECT_RATIO_WIDTH,
+                                sourceMediaFormat.getInteger(MediaFormat.KEY_PIXEL_ASPECT_RATIO_WIDTH));
+                        targetMediaFormat.setInteger(MediaFormat.KEY_PIXEL_ASPECT_RATIO_HEIGHT,
+                                sourceMediaFormat.getInteger(MediaFormat.KEY_PIXEL_ASPECT_RATIO_HEIGHT));
+                        Log.i(TAG, "Using API 33+ SAR keys: $targetMediaFormat");
+                    }
+                } else {
+                    // For older Android versions, use vendor-specific keys
+                    Log.i(TAG, "Using vendor-specific SAR keys");
+                    if (sourceMediaFormat.containsKey(KEY_VENDOR_SAR_WIDTH) &&
+                            sourceMediaFormat.containsKey(KEY_VENDOR_SAR_HEIGHT)) {
+                        targetMediaFormat.setInteger(KEY_VENDOR_SAR_WIDTH,
+                                sourceMediaFormat.getInteger(KEY_VENDOR_SAR_WIDTH));
+                        targetMediaFormat.setInteger(KEY_VENDOR_SAR_HEIGHT,
+                                sourceMediaFormat.getInteger(KEY_VENDOR_SAR_HEIGHT));
+                        Log.i(TAG, "Using vendor-specific SAR keys: $targetMediaFormat");
+                    }
+                }
+
                 break;
             } else if (sourceMediaFormat.containsKey(MediaFormat.KEY_MIME)
                     && sourceMediaFormat.getString(MediaFormat.KEY_MIME).startsWith("video")) {

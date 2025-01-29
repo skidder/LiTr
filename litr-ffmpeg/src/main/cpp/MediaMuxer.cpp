@@ -88,7 +88,7 @@ int MediaMuxer::stop() {
 }
 
 int MediaMuxer::addVideoStream(const char *codec_name, int64_t bitrate, int width, int height,
-                               uint8_t *extradata, int extradata_size) {
+                               int sar_width, int sar_height, uint8_t *extradata, int extradata_size) {
     AVStream* stream = addStream(codec_name, bitrate, extradata, extradata_size);
     if (!stream) {
         LOGE("Failed to create new stream");
@@ -98,6 +98,17 @@ int MediaMuxer::addVideoStream(const char *codec_name, int64_t bitrate, int widt
     // Add the video specific stream details.
     stream->codecpar->width = width;
     stream->codecpar->height = height;
+
+    // Set SAR values
+    if (sar_width > 0 && sar_height > 0) {
+        stream->sample_aspect_ratio = (AVRational){sar_width, sar_height};
+        stream->codecpar->sample_aspect_ratio = stream->sample_aspect_ratio;
+        LOGI("Setting SAR to %d:%d", sar_width, sar_height);
+    } else {
+        stream->sample_aspect_ratio = (AVRational){1, 1};
+        stream->codecpar->sample_aspect_ratio = stream->sample_aspect_ratio;
+        LOGI("Using default SAR 1:1");
+    }
 
     return stream->index;
 }

@@ -238,6 +238,8 @@ Java_com_linkedin_android_litr_muxers_NativeMediaMuxer_nativeAddVideoTrack(
         jint bitrate,
         jint width,
         jint height,
+        jint sarWidth,
+        jint sarHeight,
         jobject byteBuf,
         jint size) {
     auto* muxer = reinterpret_cast<MediaMuxer*>(nativeObject);
@@ -272,6 +274,8 @@ Java_com_linkedin_android_litr_muxers_NativeMediaMuxer_nativeAddVideoTrack(
             bitrate,
             width,
             height,
+            sarWidth,
+            sarHeight,
             (uint8_t *) dst,
             size);
 

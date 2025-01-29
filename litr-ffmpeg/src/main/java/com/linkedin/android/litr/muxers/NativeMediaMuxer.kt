@@ -11,6 +11,7 @@ package com.linkedin.android.litr.muxers
 
 import android.media.MediaCodec.BufferInfo
 import android.media.MediaFormat
+import android.os.Build
 import android.util.Log
 import java.nio.ByteBuffer
 
@@ -77,12 +78,37 @@ class NativeMediaMuxer(val path: String, val format: String) {
                     extra?.capacity() ?: 0
             )
         } else if (format.isVideo()) {
+            // Extract SAR values
+            var sarWidth = 1
+            var sarHeight = 1
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (format.containsKey(MediaFormat.KEY_PIXEL_ASPECT_RATIO_WIDTH) &&
+                    format.containsKey(MediaFormat.KEY_PIXEL_ASPECT_RATIO_HEIGHT)) {
+                    sarWidth = format.getInteger(MediaFormat.KEY_PIXEL_ASPECT_RATIO_WIDTH)
+                    sarHeight = format.getInteger(MediaFormat.KEY_PIXEL_ASPECT_RATIO_HEIGHT)
+                    Log.i(TAG, "Using API 33+ SAR: $sarWidth:$sarHeight")
+                }
+            } else if (format.containsKey("vendor.qti.video.sar_width") && 
+                      format.containsKey("vendor.qti.video.sar_height")) {
+                sarWidth = format.getInteger("vendor.qti.video.sar_width")
+                sarHeight = format.getInteger("vendor.qti.video.sar_height")
+                Log.i(TAG, "Using Qualcomm SAR: $sarWidth:$sarHeight")
+            } else if (format.containsKey("vendor.mtk.sar-width") && 
+                      format.containsKey("vendor.mtk.sar-height")) {
+                sarWidth = format.getInteger("vendor.mtk.sar-width")
+                sarHeight = format.getInteger("vendor.mtk.sar-height")
+                Log.i(TAG, "Using MediaTek SAR: $sarWidth:$sarHeight")
+            }
+
             nativeAddVideoTrack(
                     nativeObject,
                     format.getCodecId(),
                     format.getBitrate(),
                     format.getWidth(),
                     format.getHeight(),
+                    sarWidth,
+                    sarHeight,
                     extra,
                     extra?.capacity() ?: 0
             )
@@ -218,8 +244,8 @@ class NativeMediaMuxer(val path: String, val format: String) {
                                              channelCount: Int, sampleRate: Int, frameSize: Int,
                                              byteBuf: ByteBuffer?, size: Int): Int
     private external fun nativeAddVideoTrack(nativeObject: Long, codecId: String, bitrate: Int,
-                                             width: Int, height: Int, byteBuf: ByteBuffer?,
-                                             size: Int): Int
+                                             width: Int, height: Int, sarWidth: Int, sarHeight: Int,
+                                             byteBuf: ByteBuffer?, size: Int): Int
     private external fun nativeWriteSampleData(nativeObject: Long, trackIndex: Int,
                                                byteBuf: ByteBuffer, offset: Int, size: Int,
                                                presentationTimeUs: Long, flags: Int)

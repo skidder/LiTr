@@ -26,7 +26,7 @@ public:
     int start(const char **keys, const char **values, int optionSize);
     int stop();
     int addVideoStream(const char * codec_name, int64_t bitrate, int width, int height,
-                       uint8_t *extradata, int extradata_size);
+                       int sar_width, int sar_height, uint8_t *extradata, int extradata_size);
     int addAudioStream(const char * codec_name, int64_t bitrate, int channels, int sample_rate,
                        int frame_size, uint8_t *extradata, int extradata_size);
     int writeSampleData(int stream_index, uint8_t *buffer, int size, int64_t ptsUs, int flags);

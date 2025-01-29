@@ -105,7 +105,7 @@ public class MediaMuxerMediaTarget implements MediaTarget {
     }
 
     @Override
-    public int addTrack(@NonNull MediaFormat mediaFormat,  @IntRange(from = 0) int targetTrack) {
+    public int addTrack(@NonNull MediaFormat mediaFormat, @IntRange(from = 0) int targetTrack) {
         mediaFormatsToAdd[targetTrack] = mediaFormat;
         numberOfTracksToAdd++;
 
@@ -113,7 +113,70 @@ public class MediaMuxerMediaTarget implements MediaTarget {
             Log.d(TAG, "All tracks added, starting MediaMuxer, writing out " + queue.size() + " queued samples");
 
             for (MediaFormat trackMediaFormat : mediaFormatsToAdd) {
-                mediaMuxer.addTrack(trackMediaFormat);
+                // Create a copy of the format to modify
+                MediaFormat formatToAdd = trackMediaFormat;
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    formatToAdd = new MediaFormat(trackMediaFormat);
+
+                    // Handle SAR for video tracks
+                    if (trackMediaFormat.getString(MediaFormat.KEY_MIME, "").startsWith("video/")) {
+                        // For API 33+, copy SAR values if present
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            if (trackMediaFormat.containsKey(MediaFormat.KEY_PIXEL_ASPECT_RATIO_WIDTH) &&
+                                    trackMediaFormat.containsKey(MediaFormat.KEY_PIXEL_ASPECT_RATIO_HEIGHT)) {
+                                int sarWidth = trackMediaFormat.getInteger(MediaFormat.KEY_PIXEL_ASPECT_RATIO_WIDTH);
+                                int sarHeight = trackMediaFormat.getInteger(MediaFormat.KEY_PIXEL_ASPECT_RATIO_HEIGHT);
+                                formatToAdd.setInteger(MediaFormat.KEY_PIXEL_ASPECT_RATIO_WIDTH, sarWidth);
+                                formatToAdd.setInteger(MediaFormat.KEY_PIXEL_ASPECT_RATIO_HEIGHT, sarHeight);
+                                // Set vendor-specific encoder keys
+                                formatToAdd.setInteger("vendor.qti.video.sar_width", sarWidth);
+                                formatToAdd.setInteger("vendor.qti.video.sar_height", sarHeight);
+                                formatToAdd.setInteger("vendor.mtk.sar-width", sarWidth);
+                                formatToAdd.setInteger("vendor.mtk.sar-height", sarHeight);
+                                
+
+                                // Set pixel aspect ratio
+                                float pixelAspectRatio = (float)sarWidth / sarHeight;
+                                formatToAdd.setFloat("pixel-aspect-ratio", pixelAspectRatio);
+    
+                                // // Set display dimensions
+                                // int displayWidth = (width * sarWidth) / sarHeight;
+                                // formatToAdd.setInteger("display-width", displayWidth);
+                                // formatToAdd.setInteger("display-height", height);
+
+                                Log.i(TAG, "Setting SAR " + sarWidth + ":" + sarHeight + " for track " + targetTrack);
+                            }
+                        }
+
+                        // For older APIs, try vendor-specific keys
+                        if (trackMediaFormat.containsKey("vendor.qti.video.sar_width") &&
+                                trackMediaFormat.containsKey("vendor.qti.video.sar_height")) {
+                            int sarWidth = trackMediaFormat.getInteger("vendor.qti.video.sar_width");
+                            int sarHeight = trackMediaFormat.getInteger("vendor.qti.video.sar_height");
+                            formatToAdd.setInteger("vendor.qti.video.sar_width", sarWidth);
+                            formatToAdd.setInteger("vendor.qti.video.sar_height", sarHeight);
+                            formatToAdd.setInteger("vendor.mtk.sar-width", sarWidth);
+                            formatToAdd.setInteger("vendor.mtk.sar-height", sarHeight);
+                            // Set pixel aspect ratio
+                            float pixelAspectRatio = (float)sarWidth / sarHeight;
+                            formatToAdd.setFloat("pixel-aspect-ratio", pixelAspectRatio);
+                            Log.i(TAG, "Setting Qualcomm SAR " + sarWidth + ":" + sarHeight + " for track " + targetTrack);
+                        } else if (trackMediaFormat.containsKey("vendor.mtk.sar-width") &&
+                                trackMediaFormat.containsKey("vendor.mtk.sar-height")) {
+                            int sarWidth = trackMediaFormat.getInteger("vendor.mtk.sar-width");
+                            int sarHeight = trackMediaFormat.getInteger("vendor.mtk.sar-height");
+                            formatToAdd.setInteger("vendor.qti.video.sar_width", sarWidth);
+                            formatToAdd.setInteger("vendor.qti.video.sar_height", sarHeight);
+                            formatToAdd.setInteger("vendor.mtk.sar-width", sarWidth);
+                            formatToAdd.setInteger("vendor.mtk.sar-height", sarHeight);
+                            // Set pixel aspect ratio
+                            float pixelAspectRatio = (float)sarWidth / sarHeight;
+                            formatToAdd.setFloat("pixel-aspect-ratio", pixelAspectRatio);
+                            Log.i(TAG, "Setting MediaTek SAR " + sarWidth + ":" + sarHeight + " for track " + targetTrack);
+                        }
+                    }
+                }
+                mediaMuxer.addTrack(formatToAdd);
             }
 
             mediaMuxer.start();

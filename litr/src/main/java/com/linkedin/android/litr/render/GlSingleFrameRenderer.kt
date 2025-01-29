@@ -59,7 +59,7 @@ class GlSingleFrameRenderer(filters: List<GlFilter>?) : SingleFrameRenderer {
         pixelBuffer?.rewind()
         GLES20.glReadPixels(0, 0, width, height, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, pixelBuffer)
         val destBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        destBitmap.copyPixelsFromBuffer(pixelBuffer)
+        pixelBuffer?.let { destBitmap.copyPixelsFromBuffer(it) }
         return destBitmap
     }
 
